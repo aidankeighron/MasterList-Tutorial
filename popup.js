@@ -49,8 +49,8 @@ document.getElementById('myFile').addEventListener('change', async function() {
     const ocrJson = await ocrResponse.json();
     let markdownExport= ""
     const eachPage = ocrJson.pages
-    for(let i = 0; i < eachPage.length; i++){
-        markdownExport += eachPage[i].markdown + " ";
+    for(const element of eachPage){
+        markdownExport += element.markdown + " ";
     }
     console.log(markdownExport)
     const geminiRequestResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,{
@@ -60,17 +60,38 @@ document.getElementById('myFile').addEventListener('change', async function() {
         },
         body: JSON.stringify({
             "contents": [{
-                "parts": [{"text": "Explain how AI works in 5 words"}]
+                "parts": [{"text":`I've attached a markdown file of my class schedule. Can you extract all the assignments and return a response in CSV format with the following columns?
+                            Due Date (e.g., 3/17)
+                            Class (e.g., CSE 410)
+                            Assignment Name with any important details
+                            Assignment Type — must be one of: [Homework, Reading, Project, Exam]
+                            Checkbox (leave unchecked)
+                            Please ignore lecture entries for now." 
+                            ${markdownExport}`}]
             }]
         })
     })
     const geminiJson = await geminiRequestResponse.json()
     console.log(geminiJson)
     let geminiResponse = geminiJson.candidates[0].content.parts[0].text;
-    console.log(geminiResponse)
+    let tempResponse = geminiResponse.slice(6);
+    let textResponse = tempResponse.slice(0,-3);
+    console.log(textResponse)
+    createFileAndDownload("downloadable.csv",textResponse)
 })
 
-
+function createFileAndDownload(filename, content) {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    const p = document.createElement('p')
+    p.innerHTML = filename
+    a.append(p)
+    console.log(document.body)
+}
 
 
 
